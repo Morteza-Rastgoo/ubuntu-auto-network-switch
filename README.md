@@ -1,12 +1,14 @@
 # Ubuntu Auto Network Switch
 
-A bash script that automatically manages and switches between USB and Ethernet network interfaces to maintain internet connectivity. The script monitors both interfaces and automatically switches to the working one when connectivity issues are detected.
+A bash script that prioritizes USB network connectivity while providing automatic failover to Ethernet. The script maintains a constant connection by prioritizing the USB interface (usb0) and only switches to Ethernet (eth0) when USB connectivity fails. When USB connectivity is restored, it automatically switches back to USB and disables the Ethernet interface.
 
 ## Features
 
-- Automatic switching between USB (usb0) and Ethernet (eth0) interfaces
-- Continuous monitoring of network connectivity
-- Automatic gateway configuration
+- Prioritized USB (usb0) network interface connection
+- Automatic failover to Ethernet (eth0) when USB connectivity fails
+- Automatic switching back to USB when connectivity is restored
+- Ethernet interface management (enabling/disabling as needed)
+- Continuous connectivity monitoring
 - Detailed logging of all network switching events
 - Configurable ping target and check interval
 
@@ -34,6 +36,7 @@ A bash script that automatically manages and switches between USB and Ethernet n
 Edit the script to customize these variables at the beginning:
 
 ```bash
+DEFAULT_IF=""       # Default interface to prioritize (usb0 or eth0, defaults to USB if not set)
 USB_IF="usb0"      # USB network interface name
 ETH_IF="eth0"      # Ethernet interface name
 PING_TARGET="8.8.8.8"  # IP address to ping for connectivity check
@@ -50,11 +53,25 @@ sudo ./ubuntu-auto-network-switch.sh
 ```
 
 The script will:
-1. Monitor both network interfaces continuously
-2. Switch to USB interface if it has internet connectivity
-3. Switch to Ethernet interface if USB is down and Ethernet has connectivity
-4. Keep both interfaces up if neither has connectivity
-5. Log all events to the specified log file
+1. Prioritize and maintain the default interface connection (USB if not specified)
+2. Continuously monitor the primary interface connectivity
+3. Automatically switch to the secondary interface when primary connectivity fails
+4. Switch back to primary and disable secondary when primary connectivity is restored
+5. Keep monitoring if neither interface has connectivity
+6. Log all network switching events to the specified log file
+
+You can set the default interface when running the script:
+
+```bash
+# Use USB as default (default behavior)
+sudo ./ubuntu-auto-network-switch.sh
+
+# Or explicitly set USB as default
+DEFAULT_IF=usb0 sudo ./ubuntu-auto-network-switch.sh
+
+# Use Ethernet as default
+DEFAULT_IF=eth0 sudo ./ubuntu-auto-network-switch.sh
+```
 
 ## Logging
 

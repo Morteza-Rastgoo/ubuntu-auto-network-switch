@@ -26,9 +26,27 @@ A bash script that prioritizes USB network connectivity while providing automati
    cd ubuntu-auto-network-switch
    ```
 
-2. Make the script executable:
+2. Make the scripts executable:
    ```bash
-   chmod +x ubuntu-auto-network-switch.sh
+   chmod +x ubuntu-auto-network-switch.sh install-service.sh
+   ```
+
+3. Install as a systemd service (Optional):
+   ```bash
+   sudo ./install-service.sh
+   ```
+   This will:
+   - Create a systemd service file at `/etc/systemd/system/net-switcher.service`
+   - Copy the script to `/usr/local/bin/net-switcher.sh`
+   - Enable and start the service automatically at boot
+
+   You can manage the service using standard systemd commands:
+   ```bash
+   sudo systemctl status net-switcher    # Check service status
+   sudo systemctl stop net-switcher     # Stop the service
+   sudo systemctl start net-switcher    # Start the service
+   sudo systemctl restart net-switcher  # Restart the service
+   sudo systemctl disable net-switcher  # Disable autostart at boot
    ```
 
 ## Configuration

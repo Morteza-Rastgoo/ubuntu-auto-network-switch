@@ -1,6 +1,8 @@
 #!/bin/bash
 
-# تنظیمات
+# Configuration
+# Set default interface (usb0 or eth0). If not set, defaults to USB
+DEFAULT_IF=${DEFAULT_IF:-"$USB_IF"}
 USB_IF="usb0"
 ETH_IF="eth0"
 PING_TARGET="8.8.8.8"
@@ -8,12 +10,21 @@ INTERVAL=10
 LOGFILE="/var/log/net-switcher.log"
 LAST_ACTIVE=""
 
-# تابع لاگ‌نویسی
+# Validate and set primary/secondary interfaces
+if [ "$DEFAULT_IF" = "$ETH_IF" ]; then
+    PRIMARY_IF="$ETH_IF"
+    SECONDARY_IF="$USB_IF"
+else
+    PRIMARY_IF="$USB_IF"
+    SECONDARY_IF="$ETH_IF"
+fi
+
+# Logging function
 log() {
     echo "$(date '+%Y-%m-%d %H:%M:%S') - $1" | tee -a "$LOGFILE"
 }
 
-# بررسی اتصال اینترنت از طریق یک رابط مشخص
+# Check internet connectivity through a specific interface
 check_internet() {
     local IF=$1
     ip link show "$IF" 2>/dev/null | grep -q "state UP" || return 1
@@ -21,7 +32,7 @@ check_internet() {
     return $?
 }
 
-# تغییر دیفالت روت و فعال/غیرفعال‌سازی رابط‌ها
+# Switch default route and enable/disable interfaces
 switch_to_interface() {
     local NEW_IF=$1
     local OLD_IF=$2
@@ -32,11 +43,11 @@ switch_to_interface() {
 
     log "Switching to $NEW_IF, disabling $OLD_IF"
 
-    # فعال‌سازی رابط جدید
+    # Enable new interface
     ip link set "$NEW_IF" up
     dhclient "$NEW_IF" -v 2>/dev/null
 
-    # غیرفعال‌سازی رابط قبلی (در صورتی که موجود باشه)
+    # Disable old interface (if exists)
     if [[ -n "$OLD_IF" ]]; then
         ip link set "$OLD_IF" down 2>/dev/null
     fi
@@ -54,19 +65,19 @@ switch_to_interface() {
     LAST_ACTIVE="$NEW_IF"
 }
 
-# حلقه اصلی
+# Main loop
 while true; do
-    if check_internet "$USB_IF"; then
-        switch_to_interface "$USB_IF" "$ETH_IF"
-    elif check_internet "$ETH_IF"; then
-        switch_to_interface "$ETH_IF" "$USB_IF"
+    if check_internet "$PRIMARY_IF"; then
+        switch_to_interface "$PRIMARY_IF" "$SECONDARY_IF"
+    elif check_internet "$SECONDARY_IF"; then
+        switch_to_interface "$SECONDARY_IF" "$PRIMARY_IF"
     else
         log "❌ No internet on either interface"
-        # هر دو رابط رو بالا نگه داریم تا شاید یکی وصل شه
-        ip link set "$USB_IF" up 2>/dev/null
-        ip link set "$ETH_IF" up 2>/dev/null
-        dhclient "$USB_IF" -v 2>/dev/null
-        dhclient "$ETH_IF" -v 2>/dev/null
+        # Keep both interfaces up to catch connectivity
+        ip link set "$PRIMARY_IF" up 2>/dev/null
+        ip link set "$SECONDARY_IF" up 2>/dev/null
+        dhclient "$PRIMARY_IF" -v 2>/dev/null
+        dhclient "$SECONDARY_IF" -v 2>/dev/null
         LAST_ACTIVE=""
     fi
 
